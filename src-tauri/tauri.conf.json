@@ -57,8 +57,9 @@
         "fullscreen": false,
         "height": 600,
         "resizable": false,
-        "title": "role-pass",
-        "width": 1200
+        "title": "role-pass v0.0.1-alpha",
+        "width": 1200,
+        "center": true
       }
     ]
   }

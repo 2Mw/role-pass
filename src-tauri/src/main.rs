@@ -3,12 +3,30 @@
     windows_subsystem = "windows"
 )]
 
+use lazy_static::lazy_static;
+
 mod util;
 
-use std::{fs::create_dir, path::{PathBuf}};
+mod dao;
+
+mod models;
+
+mod service;
+use models::user::User;
+use service::{InitService, UserService};
+
+use std::{fs::create_dir, path::PathBuf};
 
 use rusqlite::{Connection, Error};
-use tauri::api::path::home_dir;
+use tauri::{api::path::home_dir};
+
+// Lazy initialize
+lazy_static! {
+    static ref INIT_SEVICE: InitService = InitService::new();
+    static ref USER_SEVICE: UserService = UserService::new();
+}
+
+static mut DB: Option<&mut Connection> = None;
 
 /// init 用于初始化配置文件和目录
 /// 1. 初始化 SQLite 的文件目录
@@ -36,23 +54,123 @@ fn init() {
             }
         }
     }
-	// 1. 初始化 SQLite
-	let res = init_sqlite(home.join(sub_dirs[1])).expect("Open sqlite failed.");
-	dbg!(res);
+    // 1. 初始化 SQLite
+    let res = init_sqlite(home.join(sub_dirs[1])).expect("Open sqlite failed.");
+    dbg!(res);
 }
 
 /// 初始化 SQLite 的文件目录
 ///
 /// 使用的包 https://github.com/rusqlite/rusqlite
-fn init_sqlite(path: PathBuf) -> Result<Connection, Error>{
-	let path = path.join(path.join("store.db"));
-	let db = Connection::open(path)?;
-	Ok(db)
+fn init_sqlite(path: PathBuf) -> Result<&'static Connection, Error> {
+    let path = path.join(path.join("store.db"));
+    let db;
+    unsafe {
+        let conn = Box::new(Connection::open(path)?);
+        DB = Some(Box::leak(conn));
+        if let Some(x) = &DB {
+            db = x;
+        } else {
+            panic!("Initial sqlite failed.")
+        }
+    }
+
+    // 初始化表 global_config
+    let res: Result<usize, rusqlite::Error> =
+        db.query_row("SELECT ID from global_config limit 1;", [], |r| r.get(0));
+
+    if let Err(e) = res {
+        // 不存在表 global_config
+        println!("err:{}", e);
+        INIT_SEVICE
+            .init_global_config(&db)
+            .expect("Initial global_config table failed");
+    } else {
+        // 添加初始化值
+        let _ = db.execute("UPDATE global_config SET run_count=run_count+1, last_run=datetime('now','localtime') where ID = 1;", ());
+    }
+
+    // 初始化用户相关表
+    USER_SEVICE.create_user_tables(&db).unwrap();
+
+    Ok(db)
+}
+
+/// Check if app password is set.
+#[tauri::command]
+fn if_app_password_set() -> bool {
+    unsafe {
+        if let Some(db) = &DB {
+            // db.execute("SELECT app_password from global_config where ID = 1", ())
+            if let Ok(e) = INIT_SEVICE.if_app_password_set(db) {
+                return e;
+            }
+        }
+        false
+    }
+}
+
+/// Set app password
+#[tauri::command]
+fn set_app_password(pass: String) -> bool {
+    unsafe {
+        if let Some(db) = &DB {
+            if let Ok(e) = INIT_SEVICE.set_app_password(db, pass) {
+                return e;
+            }
+        }
+        false
+    }
+}
+
+/// valid app password
+#[tauri::command]
+fn valid_app_password(pass: String) -> bool {
+    unsafe {
+        if let Some(db) = &DB {
+            if let Ok(e) = INIT_SEVICE.valid_app_password(db, pass) {
+                return e;
+            }
+        }
+        false
+    }
+}
+
+
+#[tauri::command]
+fn query_users() -> Result<Vec<User>, String> {
+    unsafe {
+        if let Some(db) = &DB {
+            USER_SEVICE.query_users(db)
+        } else {
+            Err("Datasource connection error".to_string())
+        }
+    }
+}
+
+#[tauri::command]
+fn login(id: usize, pass: String) -> Result<bool, String>  {
+    unsafe {
+        if let Some(db) = &DB {
+            USER_SEVICE.login(db, id, pass)
+        } else {
+            Err("Datasource connection error".to_string())
+        }
+    }
 }
 
 fn main() {
     init();
+    
     tauri::Builder::default()
+        .invoke_handler(tauri::generate_handler![
+            set_app_password,
+            if_app_password_set,
+            valid_app_password,
+            // Users
+            query_users,
+            login,
+        ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");
 }
