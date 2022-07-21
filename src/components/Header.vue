@@ -9,12 +9,16 @@
                     <el-dropdown-menu slot="dropdown">
                         <el-dropdown-item icon="el-icon-user" @click.native="selectUser">
                             选择用户</el-dropdown-item>
-                        <el-dropdown-item icon="el-icon-plus">添加用户</el-dropdown-item>
+                        <el-dropdown-item icon="el-icon-plus" @click.native="showCreateUserDialog = true">添加用户
+                        </el-dropdown-item>
                         <el-dropdown-item icon="el-icon-lock" @click.native="showSetAppPasswordDialog = true">修改登录密码
                         </el-dropdown-item>
                         <hr />
                         <el-dropdown-item icon="el-icon-upload2" disabled>导出</el-dropdown-item>
                         <el-dropdown-item icon="el-icon-download" disabled>导入</el-dropdown-item>
+                        <hr />
+                        <el-dropdown-item icon="el-icon-info" @click.native="showAppInfoDialog = true">程序信息
+                        </el-dropdown-item>
                     </el-dropdown-menu>
                 </el-dropdown>
             </el-col>
@@ -24,7 +28,8 @@
                         用户<i class="el-icon-arrow-down el-icon--right"></i>
                     </span>
                     <el-dropdown-menu slot="dropdown">
-                        <el-dropdown-item icon="el-icon-plus">添加账号</el-dropdown-item>
+                        <el-dropdown-item icon="el-icon-plus" @click.native="showAddAccountDialog = true">添加账号
+                        </el-dropdown-item>
                         <el-dropdown-item icon="el-icon-edit">修改用户密码</el-dropdown-item>
                     </el-dropdown-menu>
                 </el-dropdown>
@@ -33,15 +38,21 @@
             <el-col :span="3" :offset="15">
                 <el-dropdown trigger="click">
                     <span class="el-dropdown-link">
-                        <i class="el-icon-user"> Username</i><i class="el-icon-arrow-down el-icon--right"></i>
+                        <i class="el-icon-user"> {{ user.current_user.name }}</i><i
+                            class="el-icon-arrow-down el-icon--right"></i>
                     </span>
                     <el-dropdown-menu slot="dropdown">
-                        <el-dropdown-item>Role - 1</el-dropdown-item>
-                        <el-dropdown-item>Role - 2</el-dropdown-item>
+
+                        <el-dropdown-item v-if="user.roles.length == 0" disabled>无角色</el-dropdown-item>
+                        <el-dropdown-item v-for="(r, i) in user.roles" :key="i" @click.native="setRole(r.role)">{{
+                                r.role
+                        }}</el-dropdown-item>
                     </el-dropdown-menu>
                 </el-dropdown>
             </el-col>
         </el-row>
+
+        <!-- 修改 APP Lock -->
         <el-row>
             <el-col>
                 <el-dialog title="修改程序锁密码" :visible.sync="showSetAppPasswordDialog" width="50%"
@@ -61,6 +72,77 @@
                 </el-dialog>
             </el-col>
         </el-row>
+
+        <!-- 创建用户 -->
+        <el-row>
+            <el-col>
+                <el-dialog title="创建用户" :visible.sync="showCreateUserDialog" width="40%" :close-on-click-modal="false"
+                    :center="true" top="20vh">
+                    <el-form label-position="left" label-width="80px">
+                        <el-form-item label="用户名">
+                            <el-input placeholder="" v-model="newUsername" :minlength="3" :show-word-limit="true">
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item label="密码">
+                            <el-input placeholder="" v-model="newUserPassword" show-password :minlength="8"
+                                :show-word-limit="true" @keyup.enter.native="createUser">
+                            </el-input>
+                        </el-form-item>
+                    </el-form>
+                    <span slot="footer" class="dialog-footer">
+                        <el-button type="text" @click.native="createUser" :loading="createLoading">确 定</el-button>
+                    </span>
+                </el-dialog>
+            </el-col>
+        </el-row>
+
+        <!-- 添加账号 -->
+        <el-row>
+            <el-col>
+                <el-dialog title="添加账号" :visible.sync="showAddAccountDialog" width="40%" :close-on-click-modal="false"
+                    :center="true" top="5vh">
+                    <el-form label-position="left" label-width="80px">
+                        <el-form-item label="所选角色">
+                            <el-autocomplete class="inline-input" v-model="role" :fetch-suggestions="querySearch"
+                                placeholder="请输入内容" style="width: 100%;"></el-autocomplete>
+                        </el-form-item>
+                        <el-form-item label="网址">
+                            <el-input placeholder="" v-model="newLoginURL" :show-word-limit="true">
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item label="账号">
+                            <el-input placeholder="" v-model="newAccount" :show-word-limit="true">
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item label="密码">
+                            <el-input placeholder="" v-model="newAccountPassword" show-password :show-word-limit="true">
+                            </el-input>
+                        </el-form-item>
+                        <el-form-item label="其他备注">
+                            <el-input placeholder="" v-model="newTips" :show-word-limit="true" @keyup.enter.native="createAccount">
+                            </el-input>
+                        </el-form-item>
+
+
+                    </el-form>
+                    <span slot="footer" class="dialog-footer">
+                        <el-button type="text" @click.native="createAccount" :loading="createAccountLoading">确 定
+                        </el-button>
+                    </span>
+                </el-dialog>
+            </el-col>
+        </el-row>
+
+        <!-- 账号信息 -->
+        <el-row>
+            <el-col>
+                <el-dialog title="Role-Pass" :visible.sync="showAppInfoDialog" width="50%" center :show-close="false">
+                    <p class="text">Role-Pass 为一款本地密码存储程序，由于采用单向哈希密码验证，用户密码请妥善保存，否则将无法恢复。</p>
+                    <p class="text">Version: {{ global.version }}</p>
+                    <p class="text">Release time: {{ global.releaseTime }}</p>
+                </el-dialog>
+            </el-col>
+        </el-row>
     </div>
 </template>
 
@@ -72,11 +154,27 @@ export default {
     name: "Header",
     data() {
         return {
+            // App Lock dialog
             showSetAppPasswordDialog: false,
             oldPassword: '',
             newPassword: '',
             rePassword: '',
             resetLoading: false,
+            // Create user dialog
+            showCreateUserDialog: false,
+            newUsername: '',
+            newUserPassword: '',
+            createLoading: false,
+            // Add account dialog
+            showAddAccountDialog: false,
+            newAccount: '',
+            newAccountPassword: '',
+            role: '',
+            newLoginURL: '',
+            newTips: '',
+            createAccountLoading: false,
+            // App info dialog
+            showAppInfoDialog: false,
         }
     },
     methods: {
@@ -128,10 +226,141 @@ export default {
 
         selectUser() {
             this.$store.dispatch('global/exitUserLogin')
+        },
+
+        createUser() {
+            this.createLoading = true
+            if (this.newUsername.length >= 3) {
+                if (this.newUserPassword >= 8) {
+                    invoke('create_user', { 'name': this.newUsername, 'pass': this.newUserPassword })
+                        .then(rsp => {
+                            if (rsp) {
+                                this.$message({
+                                    message: `创建用户 ${this.newUsername} 成功`,
+                                    type: 'success'
+                                });
+                                this.$store.dispatch('user/queryUsers');
+                                this.newUserPassword = '';
+                                this.newUsername = '';
+                                this.showCreateUserDialog = false
+                            } else {
+                                this.$message.error({
+                                    message: '创建失败',
+                                });
+                            }
+                        }).catch(e => {
+                            this.$message.error({
+                                message: e,
+                            });
+                        })
+                } else {
+                    this.$message({
+                        message: '密码长度需不小于8位',
+                        type: 'warning'
+                    });
+                }
+            } else {
+                this.$message({
+                    message: '用户名长度需不小于3位',
+                    type: 'warning'
+                });
+            }
+            this.createLoading = false
+        },
+
+        querySearch(queryString, cb) {
+            let results = queryString ? this.rolesList.filter(i => {
+                return i.value.toLowerCase().indexOf(queryString.toLowerCase()) === 0;
+            }) : this.rolesList;
+            // 调用 callback 返回建议列表的数据
+            cb(results);
+        },
+
+        createAccount() {
+            this.createAccountLoading = true;
+            if (this.newAccount.length > 0) {
+                if (this.newAccountPassword.length > 0) {
+                    if (this.role.length > 0) {
+                        // console.log(this.user.key);
+                        invoke('insert_account', {
+                            uid: this.user.current_user.id,
+                            role: this.role,
+                            account: this.newAccount,
+                            pass: this.newAccountPassword,
+                            'loginUrl': this.newLoginURL,
+                            tip: this.newTips,
+                            upass: this.user.key,
+                        }).then(resp => {
+                            if (resp) {
+                                this.$message({
+                                    message: '添加账号成功',
+                                    type: 'success'
+                                });
+                                this.newAccount = '';
+                                this.newAccountPassword = '';
+                                this.newLoginURL = '';
+                                this.newTips = "";
+                                this.$store.dispatch('user/getUserRoles');
+                                this.$store.dispatch('user/getUserAccounts');
+                            }
+                        }).catch(e => {
+                            this.$message.error({
+                                message: e,
+                            });
+                        })
+                    } else {
+                        this.$message({
+                            message: '需要选取角色',
+                            type: 'warning'
+                        });
+                    }
+                } else {
+                    this.$message({
+                        message: '密码不能为空',
+                        type: 'warning'
+                    });
+                }
+            } else {
+                this.$message({
+                    message: '用户名不能为空',
+                    type: 'warning'
+                });
+            }
+            this.createAccountLoading = false;
+        },
+
+        setRole(r) {
+            this.$store.dispatch('user/setCurrentRole', r)
         }
     },
     computed: {
         ...mapState(['global', 'user']),
+        rolesList() {
+            let arr = [{ 'value': 'main' }];
+            if (this.user.roles.length > 0) arr = [];
+            this.user.roles.forEach(e => {
+                arr.push({ 'value': e.role });
+            });
+            return arr;
+        }
+    },
+
+    mounted() {
+        let i = setInterval(() => {
+            if (this.user.users.length === 0) {
+                if (!this.showCreateUserDialog) {
+                    this.showCreateUserDialog = true;
+                    this.$message({
+                        message: '请先创建用户',
+                        type: 'info'
+                    });
+                }
+
+            } else {
+                clearInterval(i);
+                this.showCreateUserDialog = false;
+            }
+        }, 1000);
     }
 }
 </script>
@@ -141,5 +370,10 @@ export default {
     padding: 10px;
     color: #cfcfcf;
     border-bottom: 1px solid #797979;
+}
+
+.text {
+    margin-top: 10px;
+    color: #cfcfcf;
 }
 </style>

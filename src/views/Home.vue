@@ -3,7 +3,10 @@
 		<Header />
 		<div v-if="global.isUserPasswordValidation">
 			<br />
-			<h1>User - Role</h1>
+			<el-tooltip class="item" effect="dark" content="每个用户可以对应多个角色" placement="bottom">
+				<h1 label="123">{{ user.current_user.name }} {{ role }}</h1>
+			</el-tooltip>
+
 			<br />
 			<hr>
 			<PassTable />
@@ -49,23 +52,24 @@ export default {
 	data() {
 		return {
 			selectedUser: '',
-			selectedUserPassword: '11111111',
+			selectedUserPassword: '',
 		}
 	},
 	methods: {
 		login() {
-			console.log(this.selectedUser, this.selectedUserPassword);
+			// console.log(this.selectedUser, this.selectedUserPassword);
 			if (this.selectedUser) {
 				if (this.selectedUserPassword.length >= 8) {
 					invoke('login', { 'id': this.selectedUser, 'pass': this.selectedUserPassword })
 						.then(rsp => {
-							console.log(rsp);
+							// console.log(rsp);
 							if (rsp) {
 								// console.log("登录成功");
 								this.$store.dispatch('global/passUserValidation');
 								this.$store.dispatch('user/storeKey', this.selectedUserPassword);
-								this.selectedUser='';
-								this.selectedUserPassword='';
+								this.$store.dispatch('user/storeUser', this.selectedUser);
+								this.selectedUser = '';
+								this.selectedUserPassword = '';
 							}
 						}).catch(e => {
 							this.$message.error({
@@ -86,11 +90,18 @@ export default {
 	},
 
 	mounted() {
-
+		if(this.global.debug) {
+			this.selectedUserPassword = '11111111'
+		}
 	},
 
 	computed: {
 		...mapState(['global', 'user']),
+		role() {
+			if (!this.user.current_role) {
+				return ""
+			} else return ` - ${this.user.current_role}`
+		}
 	}
 }
 </script>

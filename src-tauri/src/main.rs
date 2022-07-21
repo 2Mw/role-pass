@@ -12,13 +12,13 @@ mod dao;
 mod models;
 
 mod service;
-use models::user::User;
+use models::user::{User, UserPasswords};
 use service::{InitService, UserService};
 
 use std::{fs::create_dir, path::PathBuf};
 
 use rusqlite::{Connection, Error};
-use tauri::{api::path::home_dir};
+use tauri::api::path::home_dir;
 
 // Lazy initialize
 lazy_static! {
@@ -96,6 +96,8 @@ fn init_sqlite(path: PathBuf) -> Result<&'static Connection, Error> {
     Ok(db)
 }
 
+// ======================================   About Init  ==============================================
+
 /// Check if app password is set.
 #[tauri::command]
 fn if_app_password_set() -> bool {
@@ -136,6 +138,7 @@ fn valid_app_password(pass: String) -> bool {
     }
 }
 
+// ======================================   About Users  ==============================================
 
 #[tauri::command]
 fn query_users() -> Result<Vec<User>, String> {
@@ -149,7 +152,7 @@ fn query_users() -> Result<Vec<User>, String> {
 }
 
 #[tauri::command]
-fn login(id: usize, pass: String) -> Result<bool, String>  {
+fn login(id: usize, pass: String) -> Result<bool, String> {
     unsafe {
         if let Some(db) = &DB {
             USER_SEVICE.login(db, id, pass)
@@ -159,9 +162,92 @@ fn login(id: usize, pass: String) -> Result<bool, String>  {
     }
 }
 
+#[tauri::command]
+fn create_user(name: String, pass: String) -> Result<bool, String> {
+    unsafe {
+        if let Some(db) = &DB {
+            USER_SEVICE.create_user(db, name, pass)
+        } else {
+            Err("Datasource connection error".to_string())
+        }
+    }
+}
+
+#[tauri::command]
+fn get_roles_by_id(id: usize) -> Result<Vec<UserPasswords>, String> {
+    unsafe {
+        if let Some(db) = &DB {
+            USER_SEVICE.get_roles_by_id(db, id)
+        } else {
+            Err("Datasource connection error".to_string())
+        }
+    }
+}
+
+#[tauri::command]
+fn insert_account(
+    uid: usize,
+    role: String,
+    account: String,
+    pass: String,
+    login_url: String,
+    tip: String,
+    upass: String,
+) -> Result<bool, String> {
+    unsafe {
+        if let Some(db) = &DB {
+            USER_SEVICE.insert_account(db, uid, role, account, pass, login_url, tip, upass)
+        } else {
+            Err("Datasource connection error".to_string())
+        }
+    }
+}
+
+#[tauri::command]
+fn get_accounts_by_id(id: usize, key: String) -> Result<Vec<UserPasswords>, String> {
+    unsafe {
+        if let Some(db) = &DB {
+            USER_SEVICE.get_accounts_by_id(db, id, &key)
+        } else {
+            Err("Datasource connection error".to_string())
+        }
+    }
+}
+
+#[tauri::command]
+fn del_accounts_by_id(id: usize) -> Result<bool, String> {
+    unsafe {
+        if let Some(db) = &DB {
+            USER_SEVICE.del_accounts_by_id(db, id)
+        } else {
+            Err("Datasource connection error".to_string())
+        }
+    }
+}
+
+#[tauri::command]
+fn update_accounts_by_id(
+    id: usize,
+    account: String,
+    pass: String,
+    login_url: String,
+    tip: String,
+    upass: String,
+) -> Result<bool, String> {
+    unsafe {
+        if let Some(db) = &DB {
+            USER_SEVICE.update_accounts_by_id(db, id, account, pass, login_url, tip, upass)
+        } else {
+            Err("Datasource connection error".to_string())
+        }
+    }
+}
+
+// ======================================   Main  ==============================================
+
 fn main() {
     init();
-    
+
     tauri::Builder::default()
         .invoke_handler(tauri::generate_handler![
             set_app_password,
@@ -170,6 +256,12 @@ fn main() {
             // Users
             query_users,
             login,
+            create_user,
+            get_roles_by_id,
+            insert_account,
+            get_accounts_by_id,
+            del_accounts_by_id,
+            update_accounts_by_id,
         ])
         .run(tauri::generate_context!())
         .expect("error while running tauri application");

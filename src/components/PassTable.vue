@@ -1,61 +1,204 @@
 <template>
-    <el-table :data="tableData" id="table" height="483" stripe>
-        <el-table-column type="expand">
-            <template slot-scope="props">
-                <el-form label-position="left" inline class="demo-table-expand">
-                    <el-form-item label="商品名称">
-                        <span>{{ props.row.name }}</span>
-                    </el-form-item>
-                    <el-form-item label="所属店铺">
-                        <span>{{ props.row.shop }}</span>
-                    </el-form-item>
-                    <el-form-item label="商品 ID">
-                        <span>{{ props.row.id }}</span>
-                    </el-form-item>
-                    <el-form-item label="店铺 ID">
-                        <span>{{ props.row.shopId }}</span>
-                    </el-form-item>
-                    <el-form-item label="商品分类">
-                        <span>{{ props.row.category }}</span>
-                    </el-form-item>
-                    <el-form-item label="店铺地址">
-                        <span>{{ props.row.address }}</span>
-                    </el-form-item>
-                    <el-form-item label="商品描述">
-                        <span>{{ props.row.desc }}</span>
-                    </el-form-item>
-                </el-form>
-            </template>
-        </el-table-column>
-        <el-table-column v-for="(c, i) in showColumns" :key="i" :label="c.label" :prop="c.prop"></el-table-column>
-        <el-table-column label="商品名称" prop="id"></el-table-column>
-    </el-table>
+    <div>
+        <el-table :data="passwords" id="table" height="480" stripe>
+            <el-table-column type="expand">
+                <template slot-scope="props">
+                    <el-form label-position="left" inline class="demo-table-expand">
+                        <el-form-item label="网站">
+                            <span>{{ props.row.login_url }}</span>
+                        </el-form-item>
+                        <el-form-item label="账户">
+                            <span>{{ props.row.account }}</span>
+                        </el-form-item>
+                        <el-form-item label="通行证">
+                            <span>{{ props.row.password }}</span>
+                        </el-form-item>
+                        <el-form-item label="角色">
+                            <span>{{ props.row.role }}</span>
+                        </el-form-item>
+                        <el-form-item label="修改次数">
+                            <span>{{ props.row.update_count }}</span>
+                        </el-form-item>
+                        <el-form-item label="创建事件">
+                            <span>{{ props.row.create_time }}</span>
+                        </el-form-item>
+                        <el-form-item label="上次修改">
+                            <span>{{ props.row.last_update }}</span>
+                        </el-form-item>
+                    </el-form>
+                </template>
+            </el-table-column>
+            <el-table-column sortable resizable v-for="(c, i) in showColumns" :key="i" :label="c.label" :prop="c.prop">
+            </el-table-column>
+            <el-table-column label="操作">
+                <template slot-scope="scope">
+                    <el-button size="mini" type="text" @click="handleEdit(scope.$index, scope.row)">编辑</el-button>
+                    <!-- 删除按钮 -->
+                    <el-popconfirm confirm-button-text='确认' cancel-button-text='取消' icon="el-icon-info"
+                        icon-color="orange" :title="`确定删除 ` + scope.row.account + ` 吗？`" style="margin-left: 10px;"
+                        @confirm="handleDelete(scope.$index, scope.row)" confirm-button-type="text">
+                        <el-button size="mini" type="text" slot="reference">删除</el-button>
+                    </el-popconfirm>
+
+                </template>
+            </el-table-column>
+        </el-table>
+
+        <!-- 修改账号 -->
+
+        <el-dialog title="修改账号信息" :visible.sync="showModifyAccountDialog" width="40%" :close-on-click-modal="false"
+            :center="true" top="5vh">
+            <el-form label-position="left" label-width="80px">
+                <el-form-item label="网址">
+                    <el-input placeholder="" v-model="mLoginURL" :show-word-limit="true">
+                    </el-input>
+                </el-form-item>
+                <el-form-item label="账号">
+                    <el-input placeholder="" v-model="mAccount" :show-word-limit="true">
+                    </el-input>
+                </el-form-item>
+                <el-form-item label="密码">
+                    <el-input placeholder="" v-model="mAccountPassword" show-password :show-word-limit="true">
+                    </el-input>
+                </el-form-item>
+                <el-form-item label="其他备注">
+                    <el-input placeholder="" v-model="mTips" :show-word-limit="true" @keyup.enter.native="editAccount">
+                    </el-input>
+                </el-form-item>
+
+
+            </el-form>
+            <span slot="footer" class="dialog-footer">
+                <el-button type="text" @click.native="editAccount" :loading="mAccountLoading">确 定
+                </el-button>
+            </span>
+        </el-dialog>
+    </div>
 </template>
 
 <script>
+import { mapState } from 'vuex'
+import moment from 'moment'
+import { invoke } from '@tauri-apps/api';
+import assert from 'assert';
+
 export default {
     name: 'PassTable',
     data() {
         return {
             showColumns: [
-                { 'label': '商品 ID', prop: 'id' },
-                { 'label': '商品名称', prop: 'name' },
-                { 'label': '描述', prop: 'desc' },
-            ]
+                { 'label': '网站', prop: 'login_url' },
+                { 'label': '用户名', prop: 'account' },
+                { 'label': '收录时间', prop: 'create_time' },
+            ],
+            popover_visiable: false,
+            // modify account dialog
+            showModifyAccountDialog: false,
+            mAccountID: -1,
+            mLoginURL: '',
+            mAccount: '',
+            mAccountPassword: '',
+            mTips: '',
+            mAccountLoading: false,
         }
     },
     computed: {
-        tableData() {
-            return [{
-                id: '12987122',
-                name: '好滋好味鸡蛋仔',
-                category: '江浙小吃、小吃零食',
-                desc: '荷兰优质淡奶，奶香浓而不腻',
-                address: '上海市普陀区真北路',
-                shop: '王小虎夫妻店',
-                shopId: '10333'
-            }]
+        ...mapState(['global', 'user']),
+        passwords() {
+            let cp = [...this.user.passwords];
+            return cp.filter(i => {
+                i.create_time = this.toDate(i.create_time)
+                i.last_update = this.toDate(i.last_update)
+                return i.role == this.user.current_role;
+            })
         }
+    },
+
+    methods: {
+        toDate(ts) {
+            return moment(ts.toString(), 'X').format('YYYY/MM/DD HH:mm:ss')
+        },
+
+        handleEdit(index, row) {
+            index
+            this.showModifyAccountDialog = true;
+            this.mLoginURL = row.login_url;
+            this.mAccount = row.account;
+            this.mAccountPassword = row.password;
+            this.mTips = row.tip;
+            this.mAccountID = row.id
+        },
+
+        handleDelete(_index, row) {
+            _index
+            console.log("DELETE");
+            invoke('del_accounts_by_id', { id: row.id })
+                .then(rsp => {
+                    if (rsp) {
+                        // 删除成功
+                        this.$store.dispatch('user/getUserRoles');
+                        this.$store.dispatch('user/getUserAccounts');
+                        assert(true, '删除失败(未知原因)')
+                    } else {
+                        assert(true, '删除失败(未知原因)')
+                    }
+                }).catch(e => {
+                    this.$message.error({
+                        message: e
+                    })
+                })
+        },
+
+        editAccount() {
+            this.mAccountLoading = true;
+            if (this.mAccount.length > 0) {
+                if (this.mAccountPassword.length > 0) {
+                    console.log(this.user.key);
+                    invoke('update_accounts_by_id', {
+                        id: this.mAccountID,
+                        account: this.mAccount,
+                        pass: this.mAccountPassword,
+                        'loginUrl': this.mLoginURL,
+                        tip: this.mTips,
+                        upass: this.user.key,
+                    }).then(resp => {
+                        if (resp) {
+                            this.$message({
+                                message: '修改账号成功',
+                                type: 'success'
+                            });
+                            this.mAccount = '';
+                            this.mAccountPassword = '';
+                            this.mLoginURL = '';
+                            this.mTips = '';
+                            this.mAccountID = -1;
+                            this.$store.dispatch('user/getUserRoles');
+                            this.$store.dispatch('user/getUserAccounts');
+                            this.showModifyAccountDialog = false;
+                        }
+                    }).catch(e => {
+                        this.$message.error({
+                            message: e,
+                        });
+                    })
+                } else {
+                    this.$message({
+                        message: '密码不能为空',
+                        type: 'warning'
+                    });
+                }
+            } else {
+                this.$message({
+                    message: '用户名不能为空',
+                    type: 'warning'
+                });
+            }
+            this.mAccountLoading = false;
+        }
+    },
+
+    mounted() {
+        moment.locale('zh-cn')
     }
 }
 </script>

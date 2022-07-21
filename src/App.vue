@@ -1,10 +1,11 @@
 <template>
 	<div id="app">
-		<Home v-if="global.isAppPasswordValidation"/>
+		<Home v-if="global.isAppPasswordValidation" />
 
 		<el-dialog title="请设置程序锁" :visible.sync="showSetAppPassDialog" width="50%" :show-close="false"
 			:close-on-click-modal="false" :close-on-press-escape="false" :center="true" top="30vh">
-			<el-input placeholder="请输入密码" v-model="appPassword" show-password :minlength="8" :show-word-limit="true" @keyup.enter.native="setPassword">
+			<el-input placeholder="请输入密码" v-model="appPassword" show-password :minlength="8" :show-word-limit="true"
+				@keyup.enter.native="setPassword">
 			</el-input>
 			<p style="text-align:center; margin-top: 10px; color: red">{{ checkPasswordInfo }}</p>
 			<span slot="footer" class="dialog-footer">
@@ -14,7 +15,8 @@
 
 		<el-dialog title="请输入程序锁" :visible.sync="showValidAppPassDialog" width="50%" :show-close="false"
 			:close-on-click-modal="false" :close-on-press-escape="false" :center="true" top="30vh">
-			<el-input placeholder="请输入密码" v-model="appPassword" show-password :minlength="8" :show-word-limit="true" @keyup.enter.native="validPassword">
+			<el-input placeholder="请输入密码" v-model="appPassword" show-password :minlength="8" :show-word-limit="true"
+				@keyup.enter.native="validPassword">
 			</el-input>
 			<span slot="footer" class="dialog-footer">
 				<el-button type="text" @click="validPassword">确 定</el-button>
@@ -27,6 +29,7 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import { mapState } from 'vuex';
 import Home from './views/Home.vue';
+import { registerAll, unregisterAll } from '@tauri-apps/api/globalShortcut';
 // import { fs } from '@tauri-apps/api'
 
 export default {
@@ -38,7 +41,7 @@ export default {
 		return {
 			showSetAppPassDialog: false,
 			showValidAppPassDialog: false,
-			appPassword: '22222222',
+			appPassword: '',
 		}
 	},
 
@@ -53,6 +56,7 @@ export default {
 						});
 						this.showSetAppPassDialog = false;
 						this.$store.dispatch('global/setIsSetAppPassword', true);
+						this.$store.dispatch('global/passValidation')
 						this.appPassword = "";
 					}
 					else this.$message.error({
@@ -79,9 +83,11 @@ export default {
 						// 	message: '密码正确',
 						// 	type: 'success'
 						// });
-						this.showValidAppPassDialog = false;
-						this.appPassword = "";
-						this.$store.dispatch('global/passValidation')
+						if (resp) {
+							this.showValidAppPassDialog = false;
+							this.appPassword = "";
+							this.$store.dispatch('global/passValidation')
+						}
 					}
 					else this.$message.error({
 						message: '密码错误',
@@ -91,10 +97,10 @@ export default {
 		}
 	},
 	computed: {
-		...mapState(['global']),
+		...mapState(['global', 'user']),
 		checkPasswordInfo() {
 			if (this.appPassword.length == 0) return "";
-			else if (this.appPassword.length < 9) return "密码长度需大于8位";
+			else if (this.appPassword.length < 8) return "密码长度需大于8位";
 			return "";
 		},
 	},
@@ -123,6 +129,16 @@ export default {
 		}, 100);
 
 		this.$store.dispatch('global/initialize');
+
+		if (this.global.debug == false) {
+			unregisterAll();
+			// 设置特殊按键监听事件 F12, Ctrl+R, F5
+			registerAll(['CommandOrControl+R', 'F5', 'F12'], (sc) => {
+				console.log(`Shortcut ${sc} triggered`);
+			})
+		} else {
+			this.appPassword = '22222222'
+		}
 	}
 }
 </script>
@@ -148,6 +164,7 @@ html {
 	-moz-osx-font-smoothing: grayscale;
 	text-align: center;
 }
+
 /* Original Style */
 
 hr {
@@ -223,6 +240,11 @@ hr {
 	background-color: #0f0f0f !important;
 }
 
+.el-table__empty-block {
+	width: 100%;
+	height: 100%;
+}
+
 
 /* Dialog style */
 .el-dialog {
@@ -243,22 +265,44 @@ hr {
 }
 
 /* Selector Style */
-.el-select-dropdown__item.hover, .el-select-dropdown__item:hover {
-    background-color: #3f3f3f;
+.el-select-dropdown__item.hover,
+.el-select-dropdown__item:hover {
+	background-color: #3f3f3f;
 }
 
 .el-select-dropdown {
-    /* border: 1px solid #E4E7ED; */
-    background-color: #4f4f4f;
+	/* border: 1px solid #E4E7ED; */
+	background-color: #4f4f4f;
 }
 
 .el-select-dropdown__item {
-    color: #cfcfcf;
+	color: #cfcfcf;
 }
 
 /* Form Style */
 .el-form-item__label {
-    color: #cfcfcf;
+	color: #cfcfcf;
 }
 
+/* AutoComplete Style */
+.el-autocomplete-suggestion {
+	background-color: #2f2f2f;
+	color: #cfcfcf;
+}
+
+.el-autocomplete-suggestion li.highlighted,
+.el-autocomplete-suggestion li:hover {
+	background-color: #3f3f3f;
+	color: #cfcfcf;
+}
+
+.el-autocomplete-suggestion li {
+	color: #cfcfcf;
+}
+
+/* popconfirm Style */
+.el-popover {
+	background: #0f0f0f;
+	color: #cfcfcf;
+}
 </style>
