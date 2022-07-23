@@ -26,6 +26,13 @@ lazy_static! {
     static ref USER_SEVICE: UserService = UserService::new();
 }
 
+
+/**
+ * TODO: 
+ * 1. 实现导出功能
+ * 2. 实现修改密码的功能(高危)
+ */
+
 static mut DB: Option<&mut Connection> = None;
 
 /// init 用于初始化配置文件和目录

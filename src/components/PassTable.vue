@@ -1,6 +1,6 @@
 <template>
     <div>
-        <el-table :data="passwords" id="table" height="480" stripe>
+        <el-table :data="passwords" id="table" height="470" stripe>
             <el-table-column type="expand">
                 <template slot-scope="props">
                     <el-form label-position="left" inline class="demo-table-expand">
@@ -24,6 +24,9 @@
                         </el-form-item>
                         <el-form-item label="上次修改">
                             <span>{{ props.row.last_update }}</span>
+                        </el-form-item>
+                        <el-form-item label="备注">
+                            <span>{{ props.row.tip }}</span>
                         </el-form-item>
                     </el-form>
                 </template>
@@ -81,6 +84,7 @@ import { mapState } from 'vuex'
 import moment from 'moment'
 import { invoke } from '@tauri-apps/api';
 import assert from 'assert';
+import _ from 'lodash';
 
 export default {
     name: 'PassTable',
@@ -105,12 +109,21 @@ export default {
     computed: {
         ...mapState(['global', 'user']),
         passwords() {
-            let cp = [...this.user.passwords];
-            return cp.filter(i => {
+            let cp = _.cloneDeep(this.user.passwords);
+            let list = cp.filter(i => {
                 i.create_time = this.toDate(i.create_time)
                 i.last_update = this.toDate(i.last_update)
                 return i.role == this.user.current_role;
             })
+            let k = this.user.searchKey.toLowerCase();
+            if (k.length > 0) {
+                list = list.filter(i => {
+                    return i.login_url.toLowerCase().indexOf(k) >= 0 
+                    || i.account.toLowerCase().indexOf(k) >= 0
+                    || i.tip.toLowerCase().indexOf(k) >= 0
+                })
+            }
+            return list;
         }
     },
 

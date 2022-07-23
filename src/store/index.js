@@ -90,6 +90,8 @@ const userOptions = {
 		roles: [],
 		// 当前用户对应的所有账号信息
 		passwords: [],
+		// 搜索框信息
+		searchKey: ""
 
 	},
 	actions: {
@@ -115,6 +117,10 @@ const userOptions = {
 
 		setCurrentRole(ctx, role) {
 			ctx.commit('SETCURRENTROLE', role);
+		},
+
+		setSearchKey(ctx, v) {
+			ctx.commit('SETSEARCHKEY', v);
 		}
 	},
 	mutations: {
@@ -137,7 +143,7 @@ const userOptions = {
 
 		QUERYUSERS(state) {
 			invoke('query_users').then(rsp => {
-				console.log(rsp);
+				// console.log(rsp);
 				state.users = rsp;
 			}).catch(e => {
 				console.error(e);
@@ -148,7 +154,7 @@ const userOptions = {
 			invoke('get_roles_by_id', { 'id': state.current_user.id })
 				.then(resp => {
 					state.roles = resp
-					console.log('role', resp);
+					// console.log('role', resp);
 					if (resp.length > 0) {
 						let stillExistsRole = false;
 						if (state.current_role.length != 0) {
@@ -176,7 +182,7 @@ const userOptions = {
 			invoke('get_accounts_by_id', { 'id': state.current_user.id, 'key': state.key })
 				.then(resp => {
 					state.passwords = resp;
-					console.log(resp);
+					// console.log(resp);
 				}).catch(e => {
 					console.error(e);
 				})
@@ -187,6 +193,10 @@ const userOptions = {
 			if (roles.indexOf(v) >= 0) {
 				state.current_role = v;
 			}
+		},
+
+		SETSEARCHKEY(state, v) {
+			state.searchKey = v;
 		}
 
 

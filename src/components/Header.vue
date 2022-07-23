@@ -1,7 +1,7 @@
 <template>
     <div id="app">
-        <el-row>
-            <el-col :span="3">
+        <el-row style="height: 28px;">
+            <el-col :span="3" style="height: 100%; justify-content: center; align-items: center; display: flex;">
                 <el-dropdown trigger="click">
                     <span class="el-dropdown-link">
                         选项<i class="el-icon-arrow-down el-icon--right"></i>
@@ -14,7 +14,7 @@
                         <el-dropdown-item icon="el-icon-lock" @click.native="showSetAppPasswordDialog = true">修改登录密码
                         </el-dropdown-item>
                         <hr />
-                        <el-dropdown-item icon="el-icon-upload2" disabled>导出</el-dropdown-item>
+                        <el-dropdown-item icon="el-icon-upload2" @click.native="exportPasswords">导出</el-dropdown-item>
                         <el-dropdown-item icon="el-icon-download" disabled>导入</el-dropdown-item>
                         <hr />
                         <el-dropdown-item icon="el-icon-info" @click.native="showAppInfoDialog = true">程序信息
@@ -22,7 +22,7 @@
                     </el-dropdown-menu>
                 </el-dropdown>
             </el-col>
-            <el-col :span="3">
+            <el-col :span="3" style="height: 100%; justify-content: center; align-items: center; display: flex;">
                 <el-dropdown trigger="click">
                     <span class="el-dropdown-link">
                         用户<i class="el-icon-arrow-down el-icon--right"></i>
@@ -35,7 +35,13 @@
                 </el-dropdown>
             </el-col>
 
-            <el-col :span="3" :offset="15">
+            <el-col :span="8" style="height: 100%;" :offset="2">
+                <el-input placeholder="搜索" v-model="searchKey" size="mini" prefix-icon="el-icon-search"
+                    :clearable="true" @input="handleInput"></el-input>
+            </el-col>
+
+            <el-col :span="3" :offset="5"
+                style="height: 100%; justify-content: center; align-items: center; display: flex;">
                 <el-dropdown trigger="click">
                     <span class="el-dropdown-link">
                         <i class="el-icon-user"> {{ user.current_user.name }}</i><i
@@ -119,7 +125,8 @@
                             </el-input>
                         </el-form-item>
                         <el-form-item label="其他备注">
-                            <el-input placeholder="" v-model="newTips" :show-word-limit="true" @keyup.enter.native="createAccount">
+                            <el-input placeholder="" v-model="newTips" :show-word-limit="true"
+                                @keyup.enter.native="createAccount">
                             </el-input>
                         </el-form-item>
 
@@ -136,8 +143,13 @@
         <!-- 账号信息 -->
         <el-row>
             <el-col>
-                <el-dialog title="Role-Pass" :visible.sync="showAppInfoDialog" width="50%" center :show-close="false">
-                    <p class="text">Role-Pass 为一款本地密码存储程序，由于采用单向哈希密码验证，用户密码请妥善保存，否则将无法恢复。</p>
+                <el-dialog title="Role-Pass" :visible.sync="showAppInfoDialog" width="50%" center :show-close="false"
+                    style="user-select: auto;">
+                    <p class="text">Role-Pass 为一款本地密码存储程序，由于采用单向哈希密码验证，用户密码请妥善保存，
+                        否则将无法恢复，请即时<el-tooltip effect="dark" content="点击备份文件" placement="bottom">
+                            <span class="slink" @click="exportPasswords" label="点击备份文件">备份</span>
+                        </el-tooltip>密码文件。
+                    </p>
                     <p class="text">Version: {{ global.version }}</p>
                     <p class="text">Release time: {{ global.releaseTime }}</p>
                 </el-dialog>
@@ -149,6 +161,8 @@
 <script>
 import { invoke } from '@tauri-apps/api/tauri';
 import { mapState } from 'vuex';
+import { stringify } from 'csv-stringify';
+import { writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
 
 export default {
     name: "Header",
@@ -175,6 +189,8 @@ export default {
             createAccountLoading: false,
             // App info dialog
             showAppInfoDialog: false,
+            // Search key
+            searchKey: '',
         }
     },
     methods: {
@@ -231,7 +247,7 @@ export default {
         createUser() {
             this.createLoading = true
             if (this.newUsername.length >= 3) {
-                if (this.newUserPassword >= 8) {
+                if (this.newUserPassword.length >= 8) {
                     invoke('create_user', { 'name': this.newUsername, 'pass': this.newUserPassword })
                         .then(rsp => {
                             if (rsp) {
@@ -331,6 +347,30 @@ export default {
 
         setRole(r) {
             this.$store.dispatch('user/setCurrentRole', r)
+        },
+
+        handleInput(v) {
+            this.$store.dispatch('user/setSearchKey', v)
+        },
+
+        exportPasswords() {
+            let _this = this;
+            stringify(this.user.passwords, { header: true }, function (err, data) {
+                console.error(err);
+                console.log(data);
+                writeTextFile({ path: `${_this.user.current_user.name}_export.csv`, contents: data }, { dir: BaseDirectory.Desktop })
+                    .then(_ => {
+                        _
+                        _this.$message({
+                            message: '导出成功，已保存到桌面',
+                            type: 'success'
+                        });
+                    }).catch(e => {
+                        _this.$message.error({
+                            message: '导出失败：' + e,
+                        });
+                    })
+            })
         }
     },
     computed: {
@@ -375,5 +415,14 @@ export default {
 .text {
     margin-top: 10px;
     color: #cfcfcf;
+    user-select: text;
+}
+
+.slink {
+    cursor: pointer;
+}
+
+.slink:hover {
+    border-bottom: 1px dashed #cfcfcf;
 }
 </style>

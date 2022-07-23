@@ -133,7 +133,7 @@ export default {
 		if (this.global.debug == false) {
 			unregisterAll();
 			// 设置特殊按键监听事件 F12, Ctrl+R, F5
-			registerAll(['CommandOrControl+R', 'F5', 'F12'], (sc) => {
+			registerAll(['CommandOrControl+R', 'F5', 'F12', 'F3', 'F7'], (sc) => {
 				console.log(`Shortcut ${sc} triggered`);
 			})
 		} else {
