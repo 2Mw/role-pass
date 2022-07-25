@@ -29,8 +29,9 @@ lazy_static! {
 
 /**
  * TODO: 
- * 1. 实现导出功能
+ * 1. 实现导入功能
  * 2. 实现修改密码的功能(高危)
+ * 3. 分清楚导出和备份的区别
  */
 
 static mut DB: Option<&mut Connection> = None;
