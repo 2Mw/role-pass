@@ -21,7 +21,7 @@ const globalOptions = {
 		isUserPasswordValidation: false,
 		// 程序信息
 		version: 'v0.1-alpha',
-		releaseTime: '20220722',
+		releaseTime: '20220801',
 	},
 	actions: {
 		initialize(ctx) {

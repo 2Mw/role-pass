@@ -16,6 +16,7 @@
                         <hr />
                         <el-dropdown-item icon="el-icon-upload2" @click.native="exportPasswords">导出</el-dropdown-item>
                         <el-dropdown-item icon="el-icon-download" disabled>导入</el-dropdown-item>
+                        <el-dropdown-item icon="el-icon-document-copy" @click.native="backup">备份</el-dropdown-item>
                         <hr />
                         <el-dropdown-item icon="el-icon-info" @click.native="showAppInfoDialog = true">程序信息
                         </el-dropdown-item>
@@ -147,8 +148,13 @@
                     style="user-select: auto;">
                     <p class="text">Role-Pass 为一款本地密码存储程序，由于采用单向哈希密码验证，用户密码请妥善保存，
                         否则将无法恢复，请即时<el-tooltip effect="dark" content="点击备份文件" placement="bottom">
-                            <span class="slink" @click="exportPasswords" label="点击备份文件">备份</span>
+                            <span class="slink" @click="backup" label="点击备份文件">备份</span>
                         </el-tooltip>密码文件。
+                    </p>
+                    <p class="text">如果想要从备份文件中恢复数据，请将本分文件重命名为<b>store.db</b>，并且复制到程序数据库<el-tooltip effect="dark"
+                            :content="storeDir" placement="bottom">
+                            <span class="slink" @click="openDir">目录</span>
+                        </el-tooltip>下即可。
                     </p>
                     <p class="text">Version: {{ global.version }}</p>
                     <p class="text">Release time: {{ global.releaseTime }}</p>
@@ -162,7 +168,9 @@
 import { invoke } from '@tauri-apps/api/tauri';
 import { mapState } from 'vuex';
 import { stringify } from 'csv-stringify';
-import { writeTextFile, BaseDirectory } from '@tauri-apps/api/fs';
+import { writeTextFile, BaseDirectory, copyFile } from '@tauri-apps/api/fs';
+import { homeDir, desktopDir, join } from '@tauri-apps/api/path'
+import { open } from '@tauri-apps/api/shell';
 
 export default {
     name: "Header",
@@ -191,6 +199,8 @@ export default {
             showAppInfoDialog: false,
             // Search key
             searchKey: '',
+            // App path
+            storeDir: ''
         }
     },
     methods: {
@@ -371,6 +381,35 @@ export default {
                         });
                     })
             })
+        },
+
+        backup() {
+            let _this = this;
+            homeDir().then(home => {
+                join(home, 'role-pass', 'store', 'store.db').then(src => {
+                    desktopDir().then(desk => {
+                        join(desk, 'store.bak').then(target => {
+                            copyFile(src, target).then(_ => {
+                                _
+                                _this.$message({
+                                    message: '导出备份文件成功，已保存到桌面',
+                                    type: 'success'
+                                });
+                            }).catch(e => {
+                                _this.$message.error({
+                                    message: '导出备份文件失败：' + e,
+                                });
+                            })
+                        })
+
+                    })
+                })
+
+            })
+        },
+
+        openDir() {
+            open(this.storeDir)
         }
     },
     computed: {
@@ -382,10 +421,12 @@ export default {
                 arr.push({ 'value': e.role });
             });
             return arr;
-        }
+        },
     },
 
     mounted() {
+        let _this = this;
+
         let i = setInterval(() => {
             if (this.user.users.length === 0) {
                 if (!this.showCreateUserDialog) {
@@ -401,6 +442,12 @@ export default {
                 this.showCreateUserDialog = false;
             }
         }, 1000);
+
+        homeDir().then(home => {
+            join(home, 'role-pass', 'store').then(src => {
+                _this.storeDir = src
+            })
+        })
     }
 }
 </script>
