@@ -134,6 +134,7 @@
 
                     </el-form>
                     <span slot="footer" class="dialog-footer">
+                        <el-button type="text" @click.native="randomPass">随 机</el-button>
                         <el-button type="text" @click.native="createAccount" :loading="createAccountLoading">确 定
                         </el-button>
                     </span>
@@ -410,6 +411,19 @@ export default {
 
         openDir() {
             open(this.storeDir)
+        },
+
+        randomPass() {
+            let low = "qwertyuiopasdfghjklzxcvbnm";
+            let up = "QWERTYUIOPASDFGHJKLZXCVBNM"
+            let digit = "0123456789";
+            let sign = "~!@#$%^&*()_+`-=[]{}|:'<>?;',./";
+            let res = '';
+            for (let i = 0; i < Math.random() * 5 + 3; i++) res += low[Math.floor(Math.random() * low.length)];
+            for (let i = 0; i < Math.random() * 5 + 3; i++) res += up[Math.floor(Math.random() * up.length)];
+            for (let i = 0; i < Math.random() * 5 + 3; i++) res += digit[Math.floor(Math.random() * digit.length)];
+            for (let i = 0; i < Math.random() * 5 + 3; i++) res += sign[Math.floor(Math.random() * sign.length)];
+            this.newAccountPassword = res.split('').sort(() => Math.random() - 0.5).join('');
         }
     },
     computed: {
