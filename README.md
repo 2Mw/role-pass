@@ -4,9 +4,12 @@ Role-pass 是一款开源本地存储密码软件，使用单向哈希进行密�
 
 Role-pass 主要的特色就是单个用户可以拥有多个角色，方便管理多个角色下的不同密码，防止密码混乱。
 
+程序下载：[链接](https://github.com/2Mw/role-pass/releases/latest)
+
 ## 技术栈
 
 语言：Rust，JS
+
 框架：Tauri，Vue
 
 ## 特性
