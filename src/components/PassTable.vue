@@ -113,7 +113,9 @@ export default {
             let list = cp.filter(i => {
                 i.create_time = this.toDate(i.create_time)
                 i.last_update = this.toDate(i.last_update)
-                return i.role == this.user.current_role;
+                if(this.user.current_role.length > 0)
+                    return i.role == this.user.current_role;
+                else return true;
             })
             let k = this.user.searchKey.toLowerCase();
             if (k.length > 0) {

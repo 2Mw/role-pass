@@ -51,6 +51,7 @@
                     <el-dropdown-menu slot="dropdown">
 
                         <el-dropdown-item v-if="user.roles.length == 0" disabled>无角色</el-dropdown-item>
+                        <el-dropdown-item v-if="user.roles.length > 0" @click.native="setRole('')">All</el-dropdown-item>
                         <el-dropdown-item v-for="(r, i) in user.roles" :key="i" @click.native="setRole(r.role)">{{
                                 r.role
                         }}</el-dropdown-item>

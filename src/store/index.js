@@ -160,13 +160,13 @@ const userOptions = {
 						if (state.current_role.length != 0) {
 							for (let i = 0; i < state.roles.length; i++) {
 								const e = state.roles[i];
-								if(e.role == state.current_role) {
+								if (e.role == state.current_role) {
 									stillExistsRole = true;
 									break;
 								}
-							}	
+							}
 						}
-						if(state.current_role == 0 || !stillExistsRole) {
+						if (state.current_role == 0 || !stillExistsRole) {
 							// 未设置当前角色，或者当前角色已被全部删除
 							if (state.roles.length > 0) state.current_role = state.roles[0].role;
 							else state.current_role = '';
@@ -189,9 +189,13 @@ const userOptions = {
 		},
 
 		SETCURRENTROLE(state, v) {
-			let roles = state.roles.map(i => { return i.role });
-			if (roles.indexOf(v) >= 0) {
-				state.current_role = v;
+			if (v.length > 0) {
+				let roles = state.roles.map(i => { return i.role });
+				if (roles.indexOf(v) >= 0) {
+					state.current_role = v;
+				}
+			} else {
+				state.current_role = '';
 			}
 		},
 
